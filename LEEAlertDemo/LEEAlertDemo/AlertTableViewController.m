@@ -28,7 +28,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
+        
     self.title = @"Alert";
     
     self.dataArray = [NSMutableArray array];
@@ -74,6 +74,10 @@
     [demoArray addObject:@{@"title" : @"显示一个提示签到成功的 alert 弹框" , @"content" : @"类似某些复杂内容的弹框 可以通过封装成自定义视图来显示"}];
     
     [demoArray addObject:@{@"title" : @"显示一个单选选择列表的 alert 弹框" , @"content" : @"类似某些复杂内容的弹框 可以通过封装成自定义视图来显示"}];
+    
+    [demoArray addObject:@{@"title" : @"显示一个省市区选择列表的 alert 弹框" , @"content" : @"自定义的Action 通过设置其间距范围和边框等属性实现"}];
+    
+    [demoArray addObject:@{@"title" : @"显示一个评分的 alert 弹框" , @"content" : @"自定义的Action 通过设置其间距范围和边框等属性实现"}];
 }
 
 #pragma mark - 自定义视图点击事件 (随机调整size)
@@ -622,13 +626,237 @@
             
         case 5:
         {
+            __block NSString *province = nil;
+            
+            __block NSString *city = nil;
+            
+            __block NSString *area = nil;
+            
+            void (^resultBlock)() = ^{
+            
+                // 显示结果Block
+                
+                [LEEAlert alert].config
+                .LeeTitle(@"结果")
+                .LeeContent([NSString stringWithFormat:@"%@ %@ %@" , province ?: @"" , city ?: @"" , area ?: @""])
+                .LeeAction(@"好的", nil)
+                .LeeShow();
+            };
+            
+            // 获取plist数据
+            
+            NSDictionary *addressInfo = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"address" ofType:@"plist"]];
+            
+            if (!addressInfo) return;
+            
+            NSArray *provinceArray = addressInfo[@"address"];
+            
+            if (provinceArray.count) {
+                
+                // 获取省数据 并显示
+                
+                NSMutableArray *array = [NSMutableArray array];
+                
+                [provinceArray enumerateObjectsUsingBlock:^(NSDictionary *info, NSUInteger idx, BOOL * _Nonnull stop) {
+                    
+                    [array addObject:[[SelectedListModel alloc] initWithSid:idx Title:info[@"name"] Context:info]];
+                }];
+                
+                SelectedListView *view = [[SelectedListView alloc] initWithFrame:CGRectMake(0, 0, 280, 0) style:UITableViewStylePlain];
+                
+                view.isSingle = YES;
+                
+                view.array = array;
+                
+                view.selectedBlock = ^(NSArray<SelectedListModel *> *array) {
+                    
+                    [LEEAlert closeWithCompletionBlock:^{
+                        
+                        // 根据选中的省获取市数据 并显示
+                        
+                        SelectedListModel *model = array.firstObject;
+                        
+                        province = model.title; //设置省
+                        
+                        NSArray *cityArray = model.context[@"sub"];
+                        
+                        if (cityArray.count) {
+                            
+                            NSMutableArray *array = [NSMutableArray array];
+                            
+                            [cityArray enumerateObjectsUsingBlock:^(NSDictionary *info, NSUInteger idx, BOOL * _Nonnull stop) {
+                                
+                                [array addObject:[[SelectedListModel alloc] initWithSid:idx Title:info[@"name"] Context:info]];
+                            }];
+                            
+                            SelectedListView *view = [[SelectedListView alloc] initWithFrame:CGRectMake(0, 0, 280, 0) style:UITableViewStylePlain];
+                            
+                            view.isSingle = YES;
+                            
+                            view.array = array;
+                            
+                            view.selectedBlock = ^(NSArray<SelectedListModel *> *array) {
+                                
+                                [LEEAlert closeWithCompletionBlock:^{
+                                
+                                    // 根据选中的市获取区数据 并显示
+                                    
+                                    SelectedListModel *model = array.firstObject;
+                                    
+                                    city = model.title; //设置市
+                                    
+                                    NSArray *areaArray = model.context[@"sub"];
+                                    
+                                    if (areaArray.count) {
+                                        
+                                        NSMutableArray *array = [NSMutableArray array];
+                                        
+                                        [areaArray enumerateObjectsUsingBlock:^(NSString *area, NSUInteger idx, BOOL * _Nonnull stop) {
+                                            
+                                            [array addObject:[[SelectedListModel alloc] initWithSid:idx Title:area]];
+                                        }];
+                                        
+                                        SelectedListView *view = [[SelectedListView alloc] initWithFrame:CGRectMake(0, 0, 280, 0) style:UITableViewStylePlain];
+                                        
+                                        view.isSingle = YES;
+                                        
+                                        view.array = array;
+                                        
+                                        view.selectedBlock = ^(NSArray<SelectedListModel *> *array) {
+                                            
+                                            [LEEAlert closeWithCompletionBlock:^{
+                                                
+                                                // 获取区数据 并显示最终结果
+                                                
+                                                SelectedListModel *model = array.firstObject;
+                                                
+                                                area = model.title; //设置区
+                                                
+                                                if (resultBlock) resultBlock();
+                                            }];
+                                            
+                                        };
+                                        
+                                        [LEEAlert alert].config
+                                        .LeeTitle(model.title)
+                                        .LeeCustomView(view)
+                                        .LeeItemInsets(UIEdgeInsetsMake(0, 0, 0, 0))
+                                        .LeeHeaderInsets(UIEdgeInsetsMake(10, 0, 0, 0))
+                                        .LeeClickBackgroundClose(YES)
+                                        .LeeShow();
+                                    
+                                    } else {
+                                        
+                                        if (resultBlock) resultBlock();
+                                    }
+                                    
+                                }];
+                                
+                            };
+                            
+                            [LEEAlert alert].config
+                            .LeeTitle(model.title)
+                            .LeeCustomView(view)
+                            .LeeItemInsets(UIEdgeInsetsMake(0, 0, 0, 0))
+                            .LeeHeaderInsets(UIEdgeInsetsMake(10, 0, 0, 0))
+                            .LeeClickBackgroundClose(YES)
+                            .LeeShow();
+                        
+                        } else {
+                            
+                            if (resultBlock) resultBlock();
+                        }
+                        
+                    }];
+                    
+                };
+                
+                [LEEAlert alert].config
+                .LeeTitle(@"选择省")
+                .LeeCustomView(view)
+                .LeeItemInsets(UIEdgeInsetsMake(0, 0, 0, 0))
+                .LeeHeaderInsets(UIEdgeInsetsMake(10, 0, 0, 0))
+                .LeeClickBackgroundClose(YES)
+                .LeeShow();
+            }
             
         }
             break;
             
         case 6:
         {
-            
+            [LEEAlert alert].config
+            .LeeTitle(@"评个分吧")
+            .LeeAddContent(^(UILabel *label) {
+                
+                label.text = @"如果您觉得不错, 那就给个五星好评吧 亲~";
+                
+                label.textColor = [UIColor grayColor];
+            })
+            .LeeAddAction(^(LEEAction *action) {
+                
+                action.title = @"果断拒绝";
+                
+                action.titleColor = [UIColor darkGrayColor];
+                
+                action.backgroundColor = [UIColor colorWithRed:249/255.0f green:249/255.0f blue:249/255.0f alpha:1.0f];
+                
+                action.backgroundHighlightColor = [UIColor colorWithRed:239/255.0f green:239/255.0f blue:239/255.0f alpha:1.0f];
+                
+                action.insets = UIEdgeInsetsMake(0, 10, 10, 10);
+                
+                action.borderPosition = LEEActionBorderPositionTop | LEEActionBorderPositionBottom | LEEActionBorderPositionLeft | LEEActionBorderPositionRight;
+                
+                action.borderWidth = 1.0f;
+                
+                action.borderColor = action.backgroundHighlightColor;
+                
+                action.cornerRadius = 5.0f;
+            })
+            .LeeAddAction(^(LEEAction *action) {
+                
+                action.title = @"立刻吐槽";
+                
+                action.titleColor = [UIColor darkGrayColor];
+                
+                action.backgroundColor = [UIColor colorWithRed:249/255.0f green:249/255.0f blue:249/255.0f alpha:1.0f];
+                
+                action.backgroundHighlightColor = [UIColor colorWithRed:239/255.0f green:239/255.0f blue:239/255.0f alpha:1.0f];
+                
+                action.insets = UIEdgeInsetsMake(0, 10, 10, 10);
+                
+                action.borderPosition = LEEActionBorderPositionTop | LEEActionBorderPositionBottom | LEEActionBorderPositionLeft | LEEActionBorderPositionRight;
+                
+                action.borderWidth = 1.0f;
+                
+                action.borderColor = action.backgroundHighlightColor;
+                
+                action.cornerRadius = 5.0f;
+            })
+            .LeeAddAction(^(LEEAction *action) {
+                
+                action.type = LEEActionTypeCancel;
+                
+                action.title = @"五星好评";
+                
+                action.titleColor = [UIColor whiteColor];
+                
+                action.backgroundColor = [UIColor colorWithRed:243/255.0f green:94/255.0f blue:83/255.0f alpha:1.0f];
+                
+                action.backgroundHighlightColor = [UIColor colorWithRed:219/255.0f green:100/255.0f blue:94/255.0f alpha:1.0f];
+                
+                action.insets = UIEdgeInsetsMake(0, 10, 10, 10);
+                
+                action.borderPosition = LEEActionBorderPositionTop | LEEActionBorderPositionBottom | LEEActionBorderPositionLeft | LEEActionBorderPositionRight;
+                
+                action.borderWidth = 1.0f;
+                
+                action.borderColor = action.backgroundHighlightColor;
+                
+                action.cornerRadius = 5.0f;
+            })
+            .LeeCornerRadius(2.0f)
+            .LeeShow();
         }
             break;
             
