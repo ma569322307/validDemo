@@ -17,6 +17,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    NSLog(@"这里添加了一行代码");
 
     UINavigationController *nav = [[UINavigationController alloc]init];
     ViewController *vc = [[ViewController alloc]init];
