@@ -30,7 +30,7 @@
     UINavigationController *navc = [[UINavigationController alloc] initWithRootViewController:[[ViewController alloc] init]];
     self.window.rootViewController = navc;
     [self performSelector:@selector(setNew) withObject:nil afterDelay:1];
-    
+    NSLog(@"增加一行代码");
     [self.window makeKeyAndVisible];
     
     return YES;
